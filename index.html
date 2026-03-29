@@ -100,6 +100,12 @@ h1 { color: #ffccd5; }
   color: #2a0000;
 }
 
+.word.found {
+  text-decoration: line-through;
+  color: #ff4d6d;
+  font-weight: bold;
+}
+
 .score { margin-top: 10px; }
 
 button {
@@ -392,24 +398,38 @@ function move(e){
 }
 
 function end(){
-  selecting=false;
-  let word=selected.map(c=>c.textContent).join("");
-  let rev=word.split("").reverse().join("");
+  selecting = false;
 
-  let match=weeklyWords.find(w=>w.toUpperCase()===word||w.toUpperCase()===rev);
+  let word = selected.map(c => c.textContent).join("");
+  let rev = word.split("").reverse().join("");
+
+  let match = weeklyWords.find(
+    w => w.toUpperCase() === word || w.toUpperCase() === rev
+  );
 
   if(match){
-    selected.forEach(c=>{c.classList.remove("selected");c.classList.add("found");});
-    document.querySelectorAll(".word").forEach(w=>{
-      if(w.textContent===match.toUpperCase()&&!w.classList.contains("found")){
-        w.classList.add("found"); found++;
+    // highlight grid letters
+    selected.forEach(c => {
+      c.classList.remove("selected");
+      c.classList.add("found");
+    });
+
+    // cross out word in list
+    document.querySelectorAll(".word").forEach(w => {
+      if(w.textContent.trim() === match.toUpperCase()){
+        if(!w.classList.contains("found")){
+          w.classList.add("found");
+          found++;
+        }
       }
     });
+
   } else {
-    selected.forEach(c=>c.classList.remove("selected"));
+    // clear selection if wrong
+    selected.forEach(c => c.classList.remove("selected"));
   }
 
-  selected=[];
+  selected = [];
   updateScore();
 }
 
