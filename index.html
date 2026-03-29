@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLR Buried Words</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Georgia, serif;
+  color: white;
+  text-align: center;
+
+  background: 
+    linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.9)),
+    url("https://images.unsplash.com/photo-1512820790803-83ca734da794");
+
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+.game-card {
+  background: #fdf6e3;
+  color: #2a0000;
+
+  max-width: 95vw;
+  margin: 40px auto;
+  padding: 20px;
+
+  border-radius: 12px;
+
+  box-shadow: 
+    0 10px 30px rgba(0,0,0,0.6),
+    inset 0 0 40px rgba(0,0,0,0.1);
+
+  position: relative;
+}
+
+/* subtle paper texture lines */
+.game-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.03),
+    rgba(0,0,0,0.03) 1px,
+    transparent 1px,
+    transparent 24px
+  );
+  pointer-events: none;
+  border-radius: 12px;
+}
+
+h1 { color: #ffccd5; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 3px;
+
+  width: 90vw;
+  max-width: 400px;
+
+  margin: 20px auto;
+  touch-action: none;
+}
+
+#wordList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  justify-content: center;
+}
+
+.grid.blurred { filter: blur(6px) brightness(0.7); }
+
+.cell {
+  background: #fffaf0;
+  border: 1px solid #d6c5a3;
+  color: #2a0000;
+
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: clamp(14px, 4vw, 20px);
+  font-weight: bold;
+}
+
+.cell.selected { background: #ffccd5; }
+.cell.found { background: #ff4d6d; color: white; }
+
+.word {
+  padding: 5px 10px;
+  background: rgba(0,0,0,0.05);
+  border-radius: 6px;
+  color: #2a0000;
+}
+
+.score { margin-top: 10px; }
+
+button {
+  padding: 10px;
+  margin-top: 10px;
+  background: #ff4d6d;
+  border: none;
+  border-radius: 8px;
+  color: white;
+}
+
+/* NAME SCREEN */
+.start-screen {
+  position: fixed;
+  inset: 0;
+  background: black;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999
+}
+
+input {
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 6px;
+  border: none;
+  text-align: center;
+}
+
+/* SHARE */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+
+.overlay.active { display: flex; }
+
+.share-card {
+  background: #1a0000;
+  padding: 20px;
+  border-radius: 15px;
+  border: 1px solid #ff4d6d;
+}
+</style>
+</head>
+
+<body>
+
+<!-- NAME ENTRY -->
+<div class="start-screen" id="startScreen">
+  <h2>Enter Your Name</h2>
+  <input id="nameInput" placeholder="Your name...">
+  <button id="startBtn" onclick="startGame()">Start</button>
+</div>
+
+<div class="game-card">
+
+  <h1>🌹PLR Buried Words🌹</h1>
+  <p id="playerName"></p>
+
+  <div id="grid" class="grid"></div>
+  <div id="wordList"></div>
+  <div class="score" id="score">0 / 10 Found</div>
+  <button id="shareBtn" style="display:none;">Share Results</button>
+
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="share-card">
+    <h2>✨ Completed ✨</h2>
+    <p id="finalDetails"></p>
+    <button onclick="closeShare()">Close</button>
+  </div>
+</div>
+
+<script>
+// ===== NAME =====
+let player = "";
+
+function startGame(){
+  const input = document.getElementById("nameInput").value.trim();
+  if(!input) return alert("Enter your name!");
+
+  player = input;
+  document.getElementById("playerName").textContent = "Player: " + player;
+  document.getElementById("startScreen").style.display = "none";
+}
+
+// ===== WORDS =====
+const allWords = ["magic","dragon","blanket","pillow","cushion","throw","quilt","slippers","robe","sweater","socks","mug",
+"teacup","teapot","kettle","thermos","tray","coaster","candle","lantern","lamp","booklight",
+"bookmark","notebook","journal","highlite","bookstand","bookcart","shelf","library","reading","armchair",
+"recliner","footrest","window","rug","curtain","snacks","cookies","brownie","cupcake","cocoa",
+"popcorn","pretzel","mallow","caramel","honey","tea","coffee","latte","espresso","biscuit","castle","shadow","rose","dark","love","secret","dream","thorn",
+"blood","night","danger","mystery","clue","truth","story","villain","hero","quest",
+"sword","crown","power","spell","witch","curse","forest","moon","star","legend",
+"fable","tale","myth","magic","spirit","ghost","haunt","crypt","grave","ember",
+"flame","ash","stone","river","storm","wind","light","dawn","dusk","twilight",
+"echo","whisper","silence","secret","hidden","veil","mask","cloak","dagger","blade",
+"shield","armor","battle","war","enemy","rival","ally","bond","oath","fate",
+"destiny","choice","chance","secret","truth","lie","deceit","honor","glory","pride",
+"envy","greed","wrath","mercy","grace","charm","beauty","desire","passion","heart",
+"soul","mind","dreamer","vision","memory","past","future","present","moment","time",
+"clock","hour","second","eternal","infinite","beyond","portal","gate","door","path",
+"journey","travel","wander","roam","explore","discover","seek","find","lost","found",
+"return","escape","chase","hunt","track","follow","guide","lead","trail","mark",
+"symbol","rune","glyph","script","letter","page","chapter","volume","novel","author",
+"writer","reader","library","shelf","book","scroll","fairy","fablelit","epistolary","realistic","absurdism","satirical","farce","melodrama","monologue","screenplay","docufiction","truecrime","heist","legal","medical","spy","espionage","warfare","survival","disaster","apocalypse","postapoc","steampunk","dieselpunk","biopunk","timewarp","multiverse","alternate","retelling","adaptation",
+"fairycore","grimdark","cozy","sliceoflife","roadtrip","travelogue","journal","diary","letters","saga",
+"serial","miniseries","trilogy","duology","standalone","crossover","spinoff","fanfic","webnovel","lightnovel","ink","quill","paper","storyline","plot","scene","actor","stage","drama","tragedy","comedy","romance","thrill","horror"];
+
+function getWeekNumber(d){
+  const date = new Date(d);
+
+  // get day (0 = Sunday, 2 = Tuesday)
+  const day = date.getDay();
+
+  // shift date BACK to most recent Tuesday
+  const diff = (day >= 2) ? day - 2 : day + 5;
+  date.setDate(date.getDate() - diff);
+
+  // start of year
+  const start = new Date(date.getFullYear(), 0, 1);
+
+  return Math.floor((date - start) / (7 * 24 * 60 * 60 * 1000));
+}
+
+function shuffle(arr,seed){
+  let a=[...arr],r=seed;
+  for(let i=a.length-1;i>0;i--){
+    r=(r*9301+49297)%233280;
+    let j=Math.floor((r/233280)*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+const weeklyWords = shuffle(allWords,getWeekNumber(new Date())).slice(0,10);
+
+// ===== GRID =====
+const size=10;
+let grid=Array.from({length:size},()=>Array(size).fill(""));
+const dirs = [
+  [0, 1],   // right
+  [1, 0],   // down
+  [0, -1],  // left
+  [-1, 0]   // up
+];
+
+function place(word){
+  word = word.toUpperCase();
+
+  let placed = false;
+
+  while(!placed){
+    let dir = dirs[Math.floor(Math.random() * dirs.length)];
+    let row = Math.floor(Math.random() * size);
+    let col = Math.floor(Math.random() * size);
+
+    let fits = true;
+
+    for(let i = 0; i < word.length; i++){
+      let r = row + dir[0] * i;
+      let c = col + dir[1] * i;
+
+      if(
+        r < 0 || r >= size ||
+        c < 0 || c >= size ||
+        (grid[r][c] && grid[r][c] !== word[i])
+      ){
+        fits = false;
+        break;
+      }
+    }
+
+    if(fits){
+      for(let i = 0; i < word.length; i++){
+        let r = row + dir[0] * i;
+        let c = col + dir[1] * i;
+        grid[r][c] = word[i];
+      }
+      placed = true;
+    }
+  }
+}
+
+weeklyWords.forEach(w => place(w));
+
+for(let r=0;r<size;r++){
+  for(let c=0;c<size;c++){
+    if(!grid[r][c]) grid[r][c]=String.fromCharCode(65+Math.random()*26);
+  }
+}
+
+// ===== RENDER =====
+const gridDiv=document.getElementById("grid");
+grid.forEach(row=>{
+  row.forEach(l=>{
+    let d=document.createElement("div");
+    d.className="cell";
+    d.textContent=l;
+    gridDiv.appendChild(d);
+  });
+});
+
+const wordList = document.getElementById("wordList");
+
+weeklyWords.forEach(w=>{
+  let d = document.createElement("div");
+  d.textContent = w.toUpperCase();
+  d.className = "word";
+  wordList.appendChild(d);
+});
+
+// ===== GAME =====
+let selected = [];
+let selecting = false;
+let found = 0;
+
+let direction = null; // NEW
+
+function getCell(x,y){return document.elementFromPoint(x,y);}
+
+function start(){
+  if(!player) return;
+  selecting = true;
+  selected = [];
+  direction = null; // reset
+}
+
+function move(e){
+  if(!selecting) return;
+
+  let t = e.touches ? e.touches[0] : e;
+  let cell = getCell(t.clientX, t.clientY);
+
+  if(!cell || !cell.classList.contains("cell") || selected.includes(cell)) return;
+
+  // FIRST LETTER
+  if(selected.length === 0){
+    cell.classList.add("selected");
+    selected.push(cell);
+    return;
+  }
+
+  // SECOND LETTER → lock direction
+  if(selected.length === 1){
+    const first = selected[0];
+    const dx = cell.offsetLeft - first.offsetLeft;
+    const dy = cell.offsetTop - first.offsetTop;
+
+    // determine direction
+    if(Math.abs(dx) > Math.abs(dy)){
+      direction = [0, dx > 0 ? 1 : -1]; // horizontal
+    } else {
+      direction = [dy > 0 ? 1 : -1, 0]; // vertical
+    }
+
+    cell.classList.add("selected");
+    selected.push(cell);
+    return;
+  }
+
+  // AFTER direction is set → enforce straight line
+  const last = selected[selected.length - 1];
+
+  const rowDiff = cell.offsetTop - last.offsetTop;
+  const colDiff = cell.offsetLeft - last.offsetLeft;
+
+  let valid = false;
+
+  if(direction[0] === 0){
+    // horizontal
+    valid = rowDiff === 0 && Math.sign(colDiff) === direction[1];
+  } else {
+    // vertical
+    valid = colDiff === 0 && Math.sign(rowDiff) === direction[0];
+  }
+
+  if(valid){
+    cell.classList.add("selected");
+    selected.push(cell);
+  }
+}
+
+function end(){
+  selecting=false;
+  let word=selected.map(c=>c.textContent).join("");
+  let rev=word.split("").reverse().join("");
+
+  let match=weeklyWords.find(w=>w.toUpperCase()===word||w.toUpperCase()===rev);
+
+  if(match){
+    selected.forEach(c=>{c.classList.remove("selected");c.classList.add("found");});
+    document.querySelectorAll(".word").forEach(w=>{
+      if(w.textContent===match.toUpperCase()&&!w.classList.contains("found")){
+        w.classList.add("found"); found++;
+      }
+    });
+  } else {
+    selected.forEach(c=>c.classList.remove("selected"));
+  }
+
+  selected=[];
+  updateScore();
+}
+
+gridDiv.addEventListener("touchstart",start);
+gridDiv.addEventListener("touchmove",move);
+gridDiv.addEventListener("touchend",end);
+gridDiv.addEventListener("mousedown",start);
+gridDiv.addEventListener("mousemove",move);
+gridDiv.addEventListener("mouseup",end);
+
+// ===== SCORE =====
+function updateScore(){
+  document.getElementById("score").textContent = `${found} / 10 Found`;
+
+  if(found===10){
+    document.getElementById("shareBtn").style.display="inline-block";
+  }
+}
+
+// ===== SHARE =====
+document.getElementById("shareBtn").onclick=function(){
+  const today = new Date().toLocaleDateString();
+
+  document.getElementById("overlay").classList.add("active");
+  document.getElementById("grid").classList.add("blurred");
+
+  document.getElementById("finalDetails").innerHTML =
+  `<strong>${player}</strong><br>Completed on: ${today}<br>10 / 10 Words Found 🌹`;
+}
+
+function closeShare(){
+  document.getElementById("overlay").classList.remove("active");
+  document.getElementById("grid").classList.remove("blurred");
+}
+</script>
+
+</body>
+</html>
