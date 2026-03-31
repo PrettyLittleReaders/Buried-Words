@@ -188,6 +188,7 @@ input {
 </div>
 
 <script>
+document.addEventListener("DOMContentLoaded", () => {
 // ===== NAME =====
 let player = "";
 
@@ -249,7 +250,9 @@ function shuffle(arr,seed){
   return a;
 }
 
-const weeklyWords = shuffle(allWords,getWeekNumber(new Date())).slice(0,10);
+const weeklyWords = shuffle(allWords, getWeekNumber(new Date()))
+  .filter(w => w.length <= 10)
+  .slice(0, 10);
 
 // ===== GRID =====
 const size=10;
@@ -302,7 +305,7 @@ weeklyWords.forEach(w => place(w));
 
 for(let r=0;r<size;r++){
   for(let c=0;c<size;c++){
-    if(!grid[r][c]) grid[r][c]=String.fromCharCode(65+Math.random()*26);
+    if(!grid[r][c]) grid[r][c]=String.fromCharCode(65 + Math.floor(Math.random() * 26));
   }
 }
 
@@ -466,7 +469,6 @@ function closeShare(){
 }
 
 });
-</script>
 </script>
 
 </body>
