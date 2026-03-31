@@ -164,7 +164,7 @@ input {
 <div class="start-screen" id="startScreen">
   <h2>Enter Your Name</h2>
   <input id="nameInput" placeholder="Your name...">
-  <button id="startBtn" onclick="startGame()">Start</button>
+  <button id="startBtn">Start</button>
 </div>
 
 <div class="game-card">
@@ -189,7 +189,7 @@ input {
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-// ===== NAME =====
+
 let player = "";
 
 function startGame(){
@@ -200,6 +200,9 @@ function startGame(){
   document.getElementById("playerName").textContent = "Player: " + player;
   document.getElementById("startScreen").style.display = "none";
 }
+
+// ✅ THIS MUST BE OUTSIDE THE FUNCTION
+document.getElementById("startBtn").addEventListener("click", startGame);
 
 // ===== WORDS =====
 const allWords = ["magic","dragon","blanket","pillow","cushion","throw","quilt","slippers","robe","sweater","socks","mug",
